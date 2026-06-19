@@ -207,11 +207,71 @@ export default function ForumClient({
     }
   };
 
+  const forumFilters = (
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="space-y-2">
+        <h6 className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">Pesquisar</h6>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar postagens..."
+            className="w-full bg-neutral-900 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white focus:border-[#9BE8D6] focus:outline-none"
+          />
+          <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-2.5" />
+        </div>
+      </div>
+
+      {/* Categories Select/List */}
+      <div className="space-y-2">
+        <h6 className="text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">Filtrar Categoria</h6>
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={() => setActiveCategory(null)}
+            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold ${
+              activeCategory === null
+                ? "bg-[#336E72] text-[#FBFBFB]"
+                : "bg-white/5 hover:bg-white/10 text-[#FBFBFB]/75"
+            }`}
+          >
+            <span>Todos os posts</span>
+            <span className="text-[9px] opacity-75">{posts.length}</span>
+          </button>
+          {categories.map((cat) => {
+            const count = posts.filter((p) => p.category.id === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold ${
+                  activeCategory === cat.id
+                    ? "bg-[#336E72] text-[#FBFBFB]"
+                    : "bg-white/5 hover:bg-white/10 text-[#FBFBFB]/75"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: cat.color || "#336E72" }}
+                  />
+                  <span>{cat.name}</span>
+                </div>
+                <span className="text-[9px] opacity-75">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative min-h-screen w-full bg-neutral-950 text-[#FBFBFB] flex flex-col justify-between overflow-x-hidden font-sans">
       
       {/* Navbar */}
-      <Navbar user={user} />
+      <Navbar user={user} mobileFilters={forumFilters} />
 
       {/* ──────────────────────── BANNER DO ADMINISTRADOR ──────────────────────── */}
       <section className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-4">
