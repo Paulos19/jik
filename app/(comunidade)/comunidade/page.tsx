@@ -24,6 +24,7 @@ export default async function ComunidadePage() {
 
   // Fetch communities from database
   const dbCommunities = await prisma.community.findMany({
+    include: { creator: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -38,6 +39,8 @@ export default async function ComunidadePage() {
     memberCount: item.memberCount,
     tags: item.tags,
     bannerGradient: item.bannerGradient || "from-[#336E72]/40 to-neutral-900",
+    creatorName: item.creator.name,
+    creatorImage: item.creator.image,
   }));
 
   let serializedUser = null;

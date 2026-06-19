@@ -42,6 +42,9 @@ interface CommunityProps {
   memberCount: number;
   tags: string[];
   bannerGradient: string;
+  creatorId?: string;
+  creatorName?: string | null;
+  channels?: Channel[];
 }
 
 interface ComunidadeInternaClientProps {
@@ -71,82 +74,86 @@ interface Channel {
 export default function ComunidadeInternaClient({ communityId, user, initialCommunity }: ComunidadeInternaClientProps) {
   const community = initialCommunity;
 
-  // Channels Setup
-  const channels: Channel[] = [
-    { id: "painel-geral", name: "painel-geral", description: "Bate-papo livre e interações gerais da comunidade." },
-    { id: "debates-e-estudos", name: "debates-e-estudos", description: "Artigos, filosofias, metodologias de estudo e debates intelectuais." },
-    { id: "avisos-e-metas", name: "avisos-e-metas", description: "Informativos e metas coletivas definidas pela liderança." },
-    { id: "assistente-ia", name: "assistente-ia", description: "Chatbot inteligente integrado para suporte acadêmico e mentoria.", isBot: true },
-  ];
+  // Channels Setup in State
+  const [channels, setChannels] = useState<Channel[]>(() => {
+    const dbChannels = initialCommunity.channels || [];
+    if (dbChannels.length > 0) {
+      const hasBot = dbChannels.some(c => c.isBot);
+      if (!hasBot) {
+        return [
+          ...dbChannels,
+          { id: "assistente-ia", name: "assistente-ia", description: "Chatbot inteligente integrado para suporte acadêmico e mentoria.", isBot: true }
+        ];
+      }
+      return dbChannels;
+    }
+    return [
+      { id: "painel-geral", name: "painel-geral", description: "Bate-papo livre e interações gerais da comunidade." },
+      { id: "debates-e-estudos", name: "debates-e-estudos", description: "Artigos, filosofias, metodologias de estudo e debates intelectuais." },
+      { id: "assistente-ia", name: "assistente-ia", description: "Chatbot inteligente integrado para suporte acadêmico e mentoria.", isBot: true },
+    ];
+  });
 
-  const [activeChannelId, setActiveChannelId] = useState<string>("painel-geral");
+  const [activeChannelId, setActiveChannelId] = useState<string>(() => {
+    const list = initialCommunity.channels && initialCommunity.channels.length > 0
+      ? initialCommunity.channels
+      : [];
+    const firstBotLess = list.find(c => !c.isBot);
+    return firstBotLess ? firstBotLess.id : (list[0]?.id || "painel-geral");
+  });
+
+  const [isNewChannelModalOpen, setIsNewChannelModalOpen] = useState(false);
+  const [newChannelName, setNewChannelName] = useState("");
+  const [newChannelDesc, setNewChannelDesc] = useState("");
+  const [isCreatingChannel, setIsCreatingChannel] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const isOwner = !!(user?.id && initialCommunity.creatorId && user.id === initialCommunity.creatorId);
+
+  const handleCreateChannel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChannelName.trim() || !newChannelDesc.trim()) return;
+
+    setIsCreatingChannel(true);
+    try {
+      const response = await fetch(`/api/comunidade/${communityId}/channel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newChannelName,
+          description: newChannelDesc,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao criar canal");
+      }
+
+      setChannels((prev) => [...prev, data]);
+      setActiveChannelId(data.id);
+      setNewChannelName("");
+      setNewChannelDesc("");
+      setIsNewChannelModalOpen(false);
+      setToastMessage(`Canal #${data.name} criado com sucesso!`);
+      setTimeout(() => setToastMessage(""), 3000);
+    } catch (error: any) {
+      alert(error.message || "Erro de conexão ao criar canal");
+    } finally {
+      setIsCreatingChannel(false);
+    }
+  };
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   // Messages State per Channel
   const [messageHistory, setMessageHistory] = useState<Record<string, Message[]>>({
-    "painel-geral": [
-      {
-        id: "pg-1",
-        senderName: "Dr. André Marques",
-        senderRole: "Moderador",
-        content: "Sejam muito bem-vindos ao canal geral! Este espaço é para networking e conexões rápidas. Sintam-se à vontade para se apresentar.",
-        timestamp: "10:32 AM",
-        plan: "Elite",
-        avatarUrl: "AM",
-      },
-      {
-        id: "pg-2",
-        senderName: "Sarah Lima",
-        senderRole: "Membro",
-        content: "Olá a todos! Feliz em fazer parte. Estou focada em organizar os cronogramas de estudo do próximo mês.",
-        timestamp: "10:45 AM",
-        plan: "Pro",
-        avatarUrl: "SL",
-      },
-      {
-        id: "pg-3",
-        senderName: "Thiago Cardoso",
-        senderRole: "Membro",
-        content: "Excelente iniciativa, Sarah! Se precisar de ajuda para compilar os links de referência, conta comigo.",
-        timestamp: "10:48 AM",
-        plan: "Pro",
-        avatarUrl: "TC",
-      },
-    ],
-    "debates-e-estudos": [
-      {
-        id: "de-1",
-        senderName: "Dr. André Marques",
-        senderRole: "Moderador",
-        content: "Hoje iniciamos nossa leitura conjunta do ensaio sobre epistemologia moderna. O que vocês acham sobre a divisão empírica do conhecimento?",
-        timestamp: "Ontem, 4:15 PM",
-        plan: "Elite",
-        avatarUrl: "AM",
-      },
-      {
-        id: "de-2",
-        senderName: "Carlos Eduardo",
-        senderRole: "Membro",
-        content: "Acredito que ela ajuda a estruturar a pesquisa acadêmica, mas corremos o risco de fragmentar demais o aprendizado integrador.",
-        timestamp: "Ontem, 5:02 PM",
-        plan: "Básico",
-        avatarUrl: "CE",
-      },
-    ],
-    "avisos-e-metas": [
-      {
-        id: "am-1",
-        senderName: "Sistema JiK",
-        senderRole: "Staff",
-        content: "Meta Semanal: Ler o Artigo Oficial destacado no painel principal e compartilhar pelo menos 3 pontos críticos.",
-        timestamp: "Segunda-feira",
-        plan: "Staff",
-        avatarUrl: "JiK",
-      },
-    ],
     "assistente-ia": [
       {
         id: "ai-1",
@@ -162,13 +169,49 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Load channel messages dynamically on mount or channel switch
+  useEffect(() => {
+    if (!activeChannelId) return;
+
+    const loadMessages = async () => {
+      setIsLoadingMessages(true);
+      try {
+        const response = await fetch(`/api/comunidade/${communityId}/channel/${activeChannelId}/messages`);
+        if (response.ok) {
+          const data = await response.json();
+          const formatted = data.map((msg: any) => ({
+            id: msg.id,
+            senderName: msg.senderName,
+            senderRole: msg.senderRole,
+            content: msg.content,
+            timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            plan: msg.plan,
+            avatarUrl: msg.avatarUrl,
+            isAi: msg.isAi,
+          }));
+
+          setMessageHistory((prev) => ({
+            ...prev,
+            [activeChannelId]: formatted,
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching channel messages:", err);
+      } finally {
+        setIsLoadingMessages(false);
+      }
+    };
+
+    loadMessages();
+  }, [activeChannelId, communityId]);
+
   // Scroll to bottom when channel changes or messages update
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messageHistory, activeChannelId]);
 
   const activeChannel = channels.find((c) => c.id === activeChannelId) || channels[0];
-  const activeMessages = messageHistory[activeChannelId] || [];
+  const activeMessages = messageHistory[activeChannelId] || (activeChannel.isBot ? messageHistory["assistente-ia"] : []) || [];
 
   // Send message implementation
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -195,10 +238,13 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
     };
 
     // Add user message to state
-    setMessageHistory((prev) => ({
-      ...prev,
-      [activeChannelId]: [...(prev[activeChannelId] || []), newMsg],
-    }));
+    setMessageHistory((prev) => {
+      const existingMsgs = prev[activeChannelId] || [];
+      return {
+        ...prev,
+        [activeChannelId]: [...existingMsgs, newMsg],
+      };
+    });
 
     // If active channel is chatbot, call backend API
     if (activeChannel.isBot) {
@@ -213,6 +259,7 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
           body: JSON.stringify({
             message: userMessageText,
             communityId,
+            channelId: activeChannelId,
             userName: user?.name || "Membro JiK",
             userEmail: user?.email || "anonimo@jik.com",
           }),
@@ -230,10 +277,13 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
             avatarUrl: "AI",
           };
 
-          setMessageHistory((prev) => ({
-            ...prev,
-            [activeChannelId]: [...(prev[activeChannelId] || []), botMsg],
-          }));
+          setMessageHistory((prev) => {
+            const existingMsgs = prev[activeChannelId] || [];
+            return {
+              ...prev,
+              [activeChannelId]: [...existingMsgs, botMsg],
+            };
+          });
         } else {
           throw new Error("API call failed");
         }
@@ -254,6 +304,25 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
         }));
       } finally {
         setIsAiTyping(false);
+      }
+    } else {
+      // Normal channel - post to messages API
+      try {
+        await fetch(`/api/comunidade/${communityId}/channel/${activeChannelId}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content: userMessageText,
+            senderName: user?.name || "Você",
+            senderRole: isOwner ? "Moderador" : "Membro",
+            plan: userPlan,
+            avatarUrl: user?.name ? user.name.substring(0, 2).toUpperCase() : "ME",
+          }),
+        });
+      } catch (error) {
+        console.error("Error saving normal channel message to DB:", error);
       }
     }
   };
@@ -301,7 +370,12 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-500">
                   Canais de Texto
                 </span>
-                <Plus className="w-3.5 h-3.5 text-neutral-500 hover:text-white cursor-pointer" />
+                {isOwner && (
+                  <Plus
+                    onClick={() => setIsNewChannelModalOpen(true)}
+                    className="w-3.5 h-3.5 text-neutral-500 hover:text-white cursor-pointer"
+                  />
+                )}
               </div>
 
               <div className="space-y-0.5">
@@ -457,39 +531,56 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
             </div>
 
             {/* List of Messages */}
-            {activeMessages.map((msg) => (
-              <div key={msg.id} className="flex gap-3 text-left group">
-                <div className="w-9 h-9 rounded-full bg-neutral-900 border border-white/10 shrink-0 flex items-center justify-center text-xs font-bold text-neutral-300">
-                  {msg.avatarUrl}
-                </div>
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-white truncate">{msg.senderName}</span>
-                    
-                    {msg.plan === "Elite" && (
-                      <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded">
-                        Elite
-                      </span>
-                    )}
-                    {msg.plan === "Pro" && (
-                      <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-emerald-500/10 text-[#9BE8D6] border border-emerald-500/20 rounded">
-                        Pro
-                      </span>
-                    )}
-                    {msg.senderRole === "Bot" && (
-                      <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded flex items-center gap-0.5">
-                        <Bot className="w-2.5 h-2.5" /> BOT
-                      </span>
-                    )}
-                    
-                    <span className="text-[9px] text-neutral-500 font-semibold">{msg.timestamp}</span>
+            {isLoadingMessages ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex gap-3 text-left animate-pulse">
+                    <div className="w-9 h-9 rounded-full bg-white/5 border border-white/5 shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <div className="flex gap-2">
+                        <div className="h-3.5 w-24 bg-white/10 rounded" />
+                        <div className="h-2 w-8 bg-white/5 rounded" />
+                      </div>
+                      <div className="h-3 w-full max-w-md bg-white/5 rounded" />
+                    </div>
                   </div>
-                  <p className="text-xs text-neutral-300 leading-relaxed break-words whitespace-pre-wrap">
-                    {msg.content}
-                  </p>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              activeMessages.map((msg) => (
+                <div key={msg.id} className="flex gap-3 text-left group">
+                  <div className="w-9 h-9 rounded-full bg-neutral-900 border border-white/10 shrink-0 flex items-center justify-center text-xs font-bold text-neutral-300">
+                    {msg.avatarUrl}
+                  </div>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-white truncate">{msg.senderName}</span>
+                      
+                      {msg.plan === "Elite" && (
+                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded">
+                          Elite
+                        </span>
+                      )}
+                      {msg.plan === "Pro" && (
+                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-emerald-500/10 text-[#9BE8D6] border border-emerald-500/20 rounded">
+                          Pro
+                        </span>
+                      )}
+                      {msg.senderRole === "Bot" && (
+                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded flex items-center gap-0.5">
+                          <Bot className="w-2.5 h-2.5" /> BOT
+                        </span>
+                      )}
+                      
+                      <span className="text-[9px] text-neutral-500 font-semibold">{msg.timestamp}</span>
+                    </div>
+                    <p className="text-xs text-neutral-300 leading-relaxed break-words whitespace-pre-wrap">
+                      {msg.content}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
 
             {/* AI Typing Indicator */}
             {isAiTyping && (
@@ -619,13 +710,15 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
                     <div className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer">
                       <div className="relative">
                         <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-amber-700 flex items-center justify-center text-xs font-bold text-white">
-                          AM
+                          {community.creatorName ? community.creatorName.substring(0, 2).toUpperCase() : "CR"}
                         </div>
                         <Circle className="w-2.5 h-2.5 fill-emerald-500 stroke-[#090d0e] stroke-2 absolute bottom-0 right-0" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-white truncate">Dr. André Marques</p>
-                        <p className="text-[8px] text-amber-400 font-semibold uppercase">Moderador</p>
+                        <p className="text-xs font-bold text-white truncate">
+                          {community.creatorName || "Criador"}
+                        </p>
+                        <p className="text-[8px] text-amber-400 font-semibold uppercase">Proprietário</p>
                       </div>
                     </div>
                   </div>
@@ -699,6 +792,113 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
         </AnimatePresence>
 
       </main>
+
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-50 bg-[#131d1f] border border-[#9BE8D6]/30 text-white rounded-2xl px-5 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4 text-[#9BE8D6]" />
+            <span className="text-xs font-bold">{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* New Channel Modal */}
+      <AnimatePresence>
+        {isNewChannelModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsNewChannelModalOpen(false)}
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-[#090d0e]/95 border border-white/10 rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden text-left"
+            >
+              <div className="absolute top-0 right-0 p-4">
+                <button
+                  type="button"
+                  onClick={() => setIsNewChannelModalOpen(false)}
+                  className="p-1.5 hover:bg-white/5 rounded-xl border border-white/10 text-neutral-400"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Criar Novo Canal</h3>
+                  <p className="text-xs text-neutral-400">Adicione um novo espaço para debate e interação dos membros.</p>
+                </div>
+
+                <form onSubmit={handleCreateChannel} className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-neutral-300">Nome do Canal</label>
+                    <div className="relative">
+                      <Hash className="w-4 h-4 text-neutral-500 absolute left-3 top-3.5" />
+                      <input
+                        type="text"
+                        required
+                        value={newChannelName}
+                        onChange={(e) => {
+                          // Format to lowercase, remove spaces and accents/special chars to respect channel formats
+                          const formatted = e.target.value
+                            .toLowerCase()
+                            .replace(/\s+/g, "-")
+                            .replace(/[^a-z0-9-_]/g, "");
+                          setNewChannelName(formatted);
+                        }}
+                        placeholder="ex-estudos-filosoficos"
+                        className="w-full bg-neutral-900 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-white focus:border-[#9BE8D6] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-neutral-300">Descrição</label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={newChannelDesc}
+                      onChange={(e) => setNewChannelDesc(e.target.value)}
+                      placeholder="Qual o objetivo desse canal?"
+                      className="w-full bg-neutral-900 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:border-[#9BE8D6] focus:outline-none resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isCreatingChannel}
+                    className="w-full mt-2 bg-gradient-to-r from-[#9BE8D6] to-[#336E72] hover:opacity-90 disabled:opacity-50 text-[#090d0e] font-extrabold rounded-xl py-3 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_20px_rgba(155,232,214,0.15)]"
+                  >
+                    {isCreatingChannel ? (
+                      <div className="w-5 h-5 border-2 border-[#090d0e] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 stroke-[3]" />
+                        <span>Criar Canal</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

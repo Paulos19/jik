@@ -156,17 +156,54 @@ model ForumPost {
 // ==========================================
 
 model Community {
-  id             String   @id @default(cuid())
+  id             String             @id @default(cuid())
   name           String
-  description    String   @db.Text
-  type           String   // "public" | "restricted"
-  creatorPlan    String   @default("GRACE") // SimulatedPlan e.g. "GRACE", "FIEL", "APOSTOLO"
-  memberCount    Int      @default(1)
+  description    String             @db.Text
+  type           String             // "public" | "restricted"
+  creatorPlan    String             @default("GRACE") // SimulatedPlan e.g. "GRACE", "FIEL", "APOSTOLO"
+  memberCount    Int                @default(1)
   tags           String[]
   bannerGradient String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   creatorId      String
-  creator        User     @relation(fields: [creatorId], references: [id])
+  creator        User               @relation(fields: [creatorId], references: [id])
+  channels       CommunityChannel[]
 }
+
+model CommunityChannel {
+  id          String           @id @default(cuid())
+  name        String
+  description String           @db.Text
+  isBot       Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  communityId String
+  community   Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  messages    ChannelMessage[]
+}
+
+model AgentInstruction {
+  id        String   @id @default("default")
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChannelMessage {
+  id         String           @id @default(cuid())
+  content    String           @db.Text
+  senderId   String?          // Nullable for bot or system messages
+  senderName String
+  senderRole String           // "Membro" | "Moderador" | "Bot" | "Staff"
+  plan       String?          // "Básico" | "Pro" | "Elite" | "Staff"
+  avatarUrl  String?
+  isAi       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  channelId  String
+  channel    CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+}
+

@@ -39,6 +39,13 @@ export async function POST(req: Request) {
         bannerGradient: type === "public"
           ? "from-[#336E72]/40 to-neutral-900"
           : "from-indigo-900/30 to-neutral-900",
+        channels: {
+          create: [
+            { name: "painel-geral", description: "Bate-papo livre e interações gerais da comunidade." },
+            { name: "debates-e-estudos", description: "Artigos, filosofias, metodologias de estudo e debates intelectuais." },
+            { name: "assistente-ia", description: "Chatbot inteligente integrado para suporte acadêmico e mentoria.", isBot: true }
+          ]
+        }
       },
     });
 

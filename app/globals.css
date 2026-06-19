@@ -128,3 +128,29 @@
     @apply font-sans;
   }
 }
+
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(9, 13, 14, 0.4);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 110, 114, 0.3);
+  border-radius: 9999px;
+  transition: background 0.2s ease-in-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(155, 232, 214, 0.6);
+}
+
+/* Firefox compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 110, 114, 0.3) rgba(9, 13, 14, 0.4);
+}

@@ -107,6 +107,8 @@ interface Community {
   memberCount: number;
   tags: string[];
   bannerGradient: string;
+  creatorName?: string | null;
+  creatorImage?: string | null;
 }
 
 export default function ComunidadeClient({ user, initialArticles, initialCommunities }: ComunidadeClientProps) {
@@ -508,7 +510,7 @@ export default function ComunidadeClient({ user, initialArticles, initialCommuni
                           </span>
 
                           <span className={`text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 bg-neutral-900 border border-white/10 text-neutral-400 rounded-full`}>
-                            Criado por: {PLANS[comm.creatorPlan].name}
+                            Criado por: {comm.creatorName || "Membro"}
                           </span>
                         </div>
 

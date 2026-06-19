@@ -16,9 +16,10 @@ export default async function ComunidadeDetailPage({ params }: PageProps) {
 
   const { id } = await params;
 
-  // Fetch the real community from the database
+  // Fetch the real community from the database with channels and creator
   const community = await prisma.community.findUnique({
     where: { id },
+    include: { channels: true, creator: true }
   });
 
   if (!community) {
@@ -33,6 +34,14 @@ export default async function ComunidadeDetailPage({ params }: PageProps) {
     memberCount: community.memberCount,
     tags: community.tags,
     bannerGradient: community.bannerGradient || "from-[#336E72]/20 to-neutral-900",
+    creatorId: community.creatorId,
+    creatorName: community.creator.name,
+    channels: community.channels.map(ch => ({
+      id: ch.id,
+      name: ch.name,
+      description: ch.description,
+      isBot: ch.isBot
+    }))
   };
 
   // Find database user to pass real id and info
