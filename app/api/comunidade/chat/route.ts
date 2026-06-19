@@ -57,6 +57,7 @@ export async function POST(req: Request) {
           },
           body: JSON.stringify({
             message,
+            chatInput: message,
             communityId,
             channelId,
             sessionId,

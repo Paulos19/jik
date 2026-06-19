@@ -17,13 +17,31 @@ export default async function ComunidadeDetailPage({ params }: PageProps) {
   const { id } = await params;
 
   // Fetch the real community from the database with channels and creator
-  const community = await prisma.community.findUnique({
+  let community = await prisma.community.findUnique({
     where: { id },
     include: { channels: true, creator: true }
   });
 
   if (!community) {
     notFound();
+  }
+
+  // Auto-heal missing bot channel for legacy communities
+  const hasBot = community.channels.some(ch => ch.isBot);
+  if (!hasBot) {
+    try {
+      const botChannel = await prisma.communityChannel.create({
+        data: {
+          name: "assistente-ia",
+          description: "Chatbot inteligente integrado para suporte acadêmico e mentoria.",
+          isBot: true,
+          communityId: community.id
+        }
+      });
+      community.channels.push(botChannel);
+    } catch (err) {
+      console.error("Failed to auto-heal bot channel:", err);
+    }
   }
 
   const serializedCommunity = {
