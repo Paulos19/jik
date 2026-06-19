@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 
 // ==========================================
 // NEWS CARD ACTIONS
@@ -216,4 +217,64 @@ export async function deleteCategory(id: string) {
 
   await prisma.forumCategory.delete({ where: { id } });
   revalidatePath("/admin/forum/categorias");
+}
+
+// ==========================================
+// USER MANAGEMENT ACTIONS
+// ==========================================
+
+export async function toggleUserActive(userId: string): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { error: "Usuário não encontrado." };
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isActive: !user.isActive },
+    });
+
+    revalidatePath("/admin/usuarios");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || "Erro ao alternar status do usuário." };
+  }
+}
+
+export async function changeUserPassword(userId: string, newPassword: string): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+
+    if (!newPassword || newPassword.length < 6) {
+      return { error: "A senha deve ter pelo menos 6 caracteres." };
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || "Erro ao alterar senha do usuário." };
+  }
+}
+
+export async function changeUserRole(userId: string, newRole: "ADMIN" | "USER"): Promise<{ success?: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: newRole },
+    });
+
+    revalidatePath("/admin/usuarios");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || "Erro ao alterar função do usuário." };
+  }
 }

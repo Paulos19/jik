@@ -23,6 +23,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user || !user.password) return null;
 
+        if (user.isActive === false) {
+          throw new Error("A sua conta foi desativada pelo administrador.");
+        }
+
         const isValid = await bcrypt.compare(
           credentials.password as string,
           user.password
