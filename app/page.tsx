@@ -72,7 +72,7 @@ export default async function HomePage() {
           name: "Geral",
           slug: "geral",
           color: "#336E72",
-          description: "Discussões gerais sobre fé, vida e comunidade.",
+          description: "Discussões gerais sobre cooperação, vida e comunidade.",
           order: 1,
         },
       });
@@ -85,24 +85,22 @@ export default async function HomePage() {
           description: "Novidades, feedback e ajuda sobre os apps JiK.",
           order: 2,
         },
-      });
-
-      const catTestemunhos = await prisma.forumCategory.create({
+      });      const catTestemunhos = await prisma.forumCategory.create({
         data: {
-          name: "Testemunhos",
-          slug: "testemunhos",
+          name: "Conquistas",
+          slug: "conquistas",
           color: "#E07A5F",
-          description: "Compartilhe o que Deus tem feito na sua vida.",
+          description: "Compartilhe suas vitórias e aprendizados com o grupo.",
           order: 3,
         },
       });
 
       const catDevocional = await prisma.forumCategory.create({
         data: {
-          name: "Devocional",
-          slug: "devocional",
+          name: "Reflexões",
+          slug: "reflexoes",
           color: "#81B29A",
-          description: "Estudos bíblicos diários e reflexões.",
+          description: "Estudos diários, leituras e reflexões.",
           order: 4,
         },
       });
@@ -112,20 +110,20 @@ export default async function HomePage() {
         data: [
           {
             title: "Bem-vindo ao JiK! Conheça o novo ecossistema",
-            content: "Estamos muito felizes em lançar o JiK! Nosso objetivo é criar um ecossistema digital seguro, edificante e focado em conexão real. Sinta-se à vontade para compartilhar devocionais, testemunhos ou feedbacks sobre nossos próximos aplicativos. Que este seja um espaço de crescimento mútuo!",
+            content: "Estamos muito felizes em lançar o JiK! Nosso objetivo é criar um ecossistema digital seguro, edificante e focado em conexão real. Sinta-se à vontade para compartilhar reflexões, conquistas ou feedbacks sobre nossos próximos aplicativos. Que este seja um espaço de crescimento mútuo!",
             pinned: true,
             authorId: defaultUser.id,
             categoryId: catGeral.id,
           },
           {
-            title: "Aplicativo de Devocional Diário em desenvolvimento!",
-            content: "Olá irmãos! Estamos trabalhando a todo vapor no nosso primeiro aplicativo do ecossistema: um gerenciador de devocionais com planos de leitura integrados e compartilhamento de anotações com seu grupo de estudos. O que vocês gostariam de ver nele? Deixem suas ideias aqui!",
+            title: "Aplicativo de Diário Pessoal em desenvolvimento!",
+            content: "Olá pessoal! Estamos trabalhando a todo vapor no nosso primeiro aplicativo do ecossistema: um gerenciador de diário pessoal com planos de estudos integrados e compartilhamento de anotações com seu grupo. O que vocês gostariam de ver nele? Deixem suas ideias aqui!",
             authorId: defaultUser.id,
             categoryId: catApps.id,
           },
           {
-            title: "Agradecimento: Uma semana abençoada de aprendizado",
-            content: "Passando para compartilhar que esta semana consegui liderar meu primeiro pequeno grupo de oração. No começo estava muito nervoso, mas Deus capacitou cada palavra e foi um momento maravilhoso de comunhão. Se você está hesitando em dar um passo de fé, confie!",
+            title: "Progresso: Uma semana produtiva de aprendizado",
+            content: "Passando para compartilhar que esta semana consegui liderar meu primeiro pequeno grupo de estudos e debates. No começo estava muito nervoso, mas a equipe colaborou em cada palavra e foi um momento maravilhoso de conexão. Se você está hesitando em iniciar algo novo, confie!",
             authorId: defaultUser.id,
             categoryId: catTestemunhos.id,
           },
@@ -138,8 +136,8 @@ export default async function HomePage() {
         data: [
           {
             title: "Lançamento Oficial da Comunidade JiK!",
-            summary: "Seja muito bem-vindo ao ecossistema digital que une tecnologia e comunhão cristã.",
-            content: "O JiK nasceu do desejo de criar um ambiente digital acolhedor para a igreja de Cristo. Aqui, você terá acesso a fóruns moderados, aplicativos para gerenciar devocionais, leitura bíblica e muito mais. Explore nossas ferramentas e conecte-se!",
+            summary: "Seja muito bem-vindo ao ecossistema digital que une tecnologia e conexão comunitária.",
+            content: "O JiK nasceu do desejo de criar um ambiente digital acolhedor para a nossa comunidade. Aqui, você terá acesso a fóruns moderados, ferramentas de organização pessoal, estudos estruturados e muito mais. Explore nossos recursos e conecte-se!",
             imageUrl: "https://0nxicue7ew.ufs.sh/f/BGEz3YvO4INzl57T41m0tyraZP4pYltWg12wLSuqKd7iy9I8",
             published: true,
             authorId: defaultUser.id,
@@ -147,7 +145,7 @@ export default async function HomePage() {
           {
             title: "Aplicativos JiK: Próximos passos",
             summary: "Saiba quais são os aplicativos que estão em nossa esteira de desenvolvimento.",
-            content: "Nossa equipe de desenvolvedores e voluntários está focada em trazer aplicativos incríveis: Harpa Cristã, Gerenciador de Pequenos Grupos e Diário Devocional. Fique atento às nossas atualizações oficiais no Hub!",
+            content: "Nossa equipe de desenvolvedores e voluntários está focada em trazer aplicativos incríveis: Cancioneiro Digital, Gerenciador de Equipes e Diário Pessoal. Fique atento às nossas atualizações oficiais no Hub!",
             imageUrl: "https://0nxicue7ew.ufs.sh/f/BGEz3YvO4INzC5vVbX6K53lS97xR14ZtYh2wWfMubpEqjVdJ",
             published: true,
             authorId: defaultUser.id,
@@ -160,16 +158,16 @@ export default async function HomePage() {
       await prisma.hubUpdate.createMany({
         data: [
           {
-            appName: "Diário Devocional JiK",
+            appName: "Diário de Reflexões JiK",
             version: "v1.0.0",
             title: "Lançamento do Módulo de Planos de Leitura",
-            description: "Adicionado suporte a mais de 10 planos de leitura da Bíblia integrados com notificações diárias.",
+            description: "Adicionado suporte a mais de 10 planos de leitura e estudos integrados com notificações diárias.",
             type: "FEATURE",
             published: true,
             authorId: defaultUser.id,
           },
           {
-            appName: "Harpa Cristã JiK",
+            appName: "Cancioneiro Digital JiK",
             version: "v1.1.2",
             title: "Correção de Playbacks e Cifras",
             description: "Corrigido um bug onde alguns playbacks de áudio não carregavam em conexões lentas.",

@@ -61,17 +61,17 @@ export default function HubClient({ user, news, updates }: HubClientProps) {
   const apps = [
     {
       id: "devocional",
-      name: "Diário Devocional",
-      description: "Cultive sua vida devocional registrando orações, anotando reflexões bíblicas e acompanhando planos de leitura personalizados.",
+      name: "Diário de Reflexões",
+      description: "Cultive sua rotina de reflexões registrando metas, anotando aprendizados diários e acompanhando planos de estudos personalizados.",
       icon: BookOpen,
       status: "Em Desenvolvimento",
       color: "#81B29A",
-      features: ["Planos de Leitura", "Espaço de Oração", "Anotações com Tags"],
+      features: ["Planos de Leitura", "Espaço de Reflexão", "Anotações com Tags"],
     },
     {
       id: "harpa",
-      name: "Harpa Cristã",
-      description: "O hinário oficial da igreja no seu bolso. Cante com playbacks em áudio de alta qualidade, cifras dinâmicas e busca rápida.",
+      name: "Cancioneiro Digital",
+      description: "Um hinário e cancioneiro completo no seu bolso. Acompanhe com áudios, cifras dinâmicas e busca rápida.",
       icon: Music,
       status: "Disponível em Breve",
       color: "#9BE8D6",
@@ -80,11 +80,11 @@ export default function HubClient({ user, news, updates }: HubClientProps) {
     {
       id: "grupos",
       name: "Pequenos Grupos",
-      description: "Fortaleça sua comunhão em células e pequenos grupos de estudo. Agende reuniões, compartilhe pedidos de oração e estudos.",
+      description: "Fortaleça sua conexão em equipes e pequenos grupos de estudo. Agende reuniões, compartilhe metas e estudos.",
       icon: Users2,
       status: "Planejado",
       color: "#E07A5F",
-      features: ["Calendário de Reuniões", "Mural de Pedidos", "Material de Apoio"],
+      features: ["Calendário de Reuniões", "Mural de Metas", "Material de Apoio"],
     },
   ];
 
@@ -128,7 +128,7 @@ export default function HubClient({ user, news, updates }: HubClientProps) {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-base text-[#FBFBFB]/70 max-w-2xl mx-auto leading-relaxed"
           >
-            Acompanhe o desenvolvimento de nossas ferramentas feitas para auxiliar na sua caminhada cristã, comunhão e leitura diária.
+            Acompanhe o desenvolvimento de nossas ferramentas feitas para auxiliar na sua jornada diária, conexão e organização pessoal.
           </motion.p>
         </div>
       </section>
@@ -373,7 +373,7 @@ export default function HubClient({ user, news, updates }: HubClientProps) {
       <footer className="relative z-10 border-t border-white/5 py-8 mt-12 bg-neutral-950">
         <div className="max-w-7xl mx-auto px-6 text-center text-xs text-neutral-500 space-y-2">
           <p>© {new Date().getFullYear()} JiK Ecosystem. Todos os direitos reservados.</p>
-          <p>Feito com amor, fé e propósito para edificar a igreja.</p>
+          <p>Feito com dedicação, cooperação e propósito para integrar nossa comunidade.</p>
         </div>
       </footer>
     </div>

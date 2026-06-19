@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "JiK - Um ecossistema de fé, conexão e propósito",
+  title: "JiK - Um ecossistema de integração, conexão e propósito",
   description: "Fórum interativo, hub de produtos e comunidade acolhedora.",
 };
 

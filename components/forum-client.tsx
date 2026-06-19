@@ -322,7 +322,7 @@ export default function ForumClient({
                 Comunidade JiK Fórum
               </h2>
               <p className="text-neutral-400 text-sm max-w-xl leading-relaxed">
-                Um espaço seguro e acolhedor para compartilhar testemunhos, debater ideias saudáveis sobre fé e crescer espiritualmente com os irmãos.
+                Um espaço seguro e acolhedor para compartilhar conquistas, debater ideias saudáveis sobre cooperação e crescer profissional e pessoalmente.
               </p>
             </div>
             <div className="shrink-0">
@@ -591,11 +591,11 @@ export default function ForumClient({
                 <ol className="space-y-3.5 text-xs text-[#FBFBFB]/75 leading-relaxed">
                   <li className="flex gap-2">
                     <span className="font-bold text-[#9BE8D6]">1.</span>
-                    <span>Seja edificante: Escreva coisas que auxiliem no crescimento do próximo.</span>
+                    <span>Seja construtivo: Compartilhe ideias e conhecimentos que agreguem valor à comunidade.</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="font-bold text-[#9BE8D6]">2.</span>
-                    <span>Respeito mútuo: Trate todos com amor fraternal e paciência.</span>
+                    <span>Respeito mútuo: Trate todos com cordialidade, empatia e paciência.</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="font-bold text-[#9BE8D6]">3.</span>
@@ -612,7 +612,7 @@ export default function ForumClient({
       <footer className="relative z-10 border-t border-white/5 py-8 bg-neutral-950">
         <div className="max-w-7xl mx-auto px-6 text-center text-xs text-neutral-500 space-y-2">
           <p>© {new Date().getFullYear()} JiK Ecosystem. Todos os direitos reservados.</p>
-          <p>Feito com amor, fé e propósito para edificar a igreja.</p>
+          <p>Feito com dedicação, cooperação e propósito para integrar nossa comunidade.</p>
         </div>
       </footer>
 

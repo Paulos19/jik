@@ -165,7 +165,7 @@ export default function HomeClient({
               variants={itemVariants}
             >
               Um ecossistema <br />
-              de fé, conexão <br />
+              de integração, conexão <br />
               e <span className="bg-gradient-to-r from-[#9BE8D6] to-[#336E72] bg-clip-text text-transparent drop-shadow-sm">propósito.</span>
             </motion.h1>
 
