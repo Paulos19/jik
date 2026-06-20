@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import Link from "next/link";
 import {
   Hash,
   Send,
@@ -13,6 +16,9 @@ import {
   Lock,
   Globe,
   ChevronRight,
+  ChevronDown,
+  LogOut,
+  User,
   Menu,
   X,
   Paperclip,
@@ -25,6 +31,7 @@ import {
   Circle,
   HelpCircle
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import Navbar from "@/components/navbar";
 
 type UserProps = {
@@ -60,8 +67,64 @@ interface Message {
   content: string;
   timestamp: string;
   isAi?: boolean;
+  animate?: boolean;
   avatarUrl?: string;
   plan?: "Básico" | "Pro" | "Elite" | "Staff";
+}
+
+function TypewriterMarkdown({ content, isAi, animate }: { content: string; isAi?: boolean; animate?: boolean }) {
+  const [displayedContent, setDisplayedContent] = useState(animate ? "" : content);
+  
+  useEffect(() => {
+    if (!animate) {
+      setDisplayedContent(content);
+      return;
+    }
+
+    let currentIdx = 0;
+    const interval = setInterval(() => {
+      currentIdx += 2;
+      if (currentIdx >= content.length) {
+        setDisplayedContent(content);
+        clearInterval(interval);
+      } else {
+        setDisplayedContent(content.slice(0, currentIdx));
+      }
+    }, 15);
+
+    return () => clearInterval(interval);
+  }, [content, animate]);
+
+  return (
+    <ReactMarkdown 
+      remarkPlugins={[remarkGfm]}
+      components={{
+        p: ({node, ...props}) => <p className="mb-2 last:mb-0 whitespace-pre-wrap" {...props} />,
+        strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+        ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+        ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+        li: ({node, ...props}) => <li className="" {...props} />,
+        a: ({node, ...props}) => <a className="text-[#9BE8D6] hover:underline" {...props} />,
+        h1: ({node, ...props}) => <h1 className="font-bold text-white text-sm mb-2 mt-4 first:mt-0" {...props} />,
+        h2: ({node, ...props}) => <h2 className="font-bold text-white text-[13px] mb-2 mt-3 first:mt-0" {...props} />,
+        h3: ({node, ...props}) => <h3 className="font-bold text-white text-xs mb-2 mt-2 first:mt-0" {...props} />,
+        code: ({node, className, children, ...props}: any) => {
+          const isInline = !className?.includes('language-');
+          return isInline ? (
+            <code className="bg-white/10 text-[#9BE8D6] px-1 py-0.5 rounded text-[11px] font-mono" {...props}>
+              {children}
+            </code>
+          ) : (
+            <code className="block bg-neutral-900 border border-white/10 p-3 rounded-xl text-[11px] font-mono overflow-x-auto my-2" {...props}>
+              {children}
+            </code>
+          )
+        }
+      }}
+    >
+      {displayedContent + (animate && displayedContent.length < content.length ? " ▊" : "")}
+    </ReactMarkdown>
+  );
 }
 
 interface Channel {
@@ -78,14 +141,19 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
   const [channels, setChannels] = useState<Channel[]>(() => {
     const dbChannels = initialCommunity.channels || [];
     if (dbChannels.length > 0) {
-      const hasBot = dbChannels.some(c => c.isBot);
+      const hasBot = dbChannels.some(c => c.isBot || c.id === "assistente-ia" || c.name === "assistente-ia");
+      
+      const mappedChannels = dbChannels.map(c => 
+        (c.id === "assistente-ia" || c.name === "assistente-ia") ? { ...c, isBot: true } : c
+      );
+
       if (!hasBot) {
         return [
-          ...dbChannels,
+          ...mappedChannels,
           { id: "assistente-ia", name: "assistente-ia", description: "Chatbot inteligente integrado para suporte acadêmico e mentoria.", isBot: true }
         ];
       }
-      return dbChannels;
+      return mappedChannels;
     }
     return [
       { id: "painel-geral", name: "painel-geral", description: "Bate-papo livre e interações gerais da comunidade." },
@@ -148,6 +216,7 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
   };
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -163,6 +232,7 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
         timestamp: "Agora",
         isAi: true,
         avatarUrl: "AI",
+        animate: true,
       },
     ],
   });
@@ -188,6 +258,7 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
             plan: msg.plan,
             avatarUrl: msg.avatarUrl,
             isAi: msg.isAi,
+            animate: false,
           }));
 
           setMessageHistory((prev) => ({
@@ -234,7 +305,7 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
       content: userMessageText,
       timestamp: timeString,
       plan: userPlan as any,
-      avatarUrl: user?.name ? user.name.substring(0, 2).toUpperCase() : "ME",
+      avatarUrl: user?.image || (user?.name ? user.name.substring(0, 2).toUpperCase() : "ME"),
     };
 
     // Add user message to state
@@ -275,6 +346,7 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
             isAi: true,
             avatarUrl: "AI",
+            animate: true,
           };
 
           setMessageHistory((prev) => {
@@ -328,15 +400,72 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-neutral-950 text-[#FBFBFB] flex flex-col justify-between overflow-x-hidden font-sans">
-      <Navbar user={user} />
+    <div className="h-screen w-full bg-neutral-950 text-[#FBFBFB] flex flex-col overflow-hidden font-sans">
+      {/* Community Specific Navbar */}
+      <header className="h-14 bg-[#050809] border-b border-white/5 px-4 flex items-center justify-between shrink-0 z-50">
+        <div className="flex items-center gap-3">
+          <Link href="/comunidade" className="text-neutral-400 hover:text-white transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#9BE8D6]/20 to-[#336E72]/20 border border-[#9BE8D6]/20 flex items-center justify-center text-[#9BE8D6] font-bold text-[10px]">
+              {community.name.substring(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-white leading-none mb-0.5">{community.name}</h1>
+              <p className="text-[9px] text-[#9BE8D6] uppercase tracking-wider font-semibold">Sala de Estudos JiK</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 relative">
+          {user ? (
+            <div className="relative">
+              <button 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 hover:bg-white/5 py-1 px-2 rounded-full transition-colors cursor-pointer"
+              >
+                <span className="text-xs font-semibold text-neutral-400 hidden sm:block">{user.name?.split(" ")[0]}</span>
+                <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[#9BE8D6] to-[#336E72] flex items-center justify-center text-[10px] font-bold text-neutral-900 shadow-md overflow-hidden shrink-0">
+                  {user.image ? (
+                    <img src={user.image} alt={user.name || "User"} className="w-full h-full object-cover" />
+                  ) : (
+                    user.name ? user.name.substring(0, 2).toUpperCase() : "ME"
+                  )}
+                </div>
+                <ChevronDown className="w-3 h-3 text-neutral-500" />
+              </button>
+
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 py-2 bg-neutral-900/95 border border-white/10 rounded-xl shadow-xl backdrop-blur-xl z-50">
+                  <Link
+                    href="/perfil"
+                    className="flex items-center gap-3 px-4 py-2 text-sm text-neutral-300 hover:text-[#FBFBFB] hover:bg-white/5 transition-colors"
+                  >
+                    <User className="w-4 h-4" />
+                    Meu Perfil
+                  </Link>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link href="/login" className="text-xs font-bold text-[#9BE8D6] hover:text-white transition-colors">Entrar</Link>
+          )}
+        </div>
+      </header>
 
       {/* ──────────────────────── MAIN CONTAINER ──────────────────────── */}
-      <main className="relative z-10 flex-1 pt-20 flex h-[calc(100vh-80px)] overflow-hidden">
+      <main className="relative z-10 flex-1 flex overflow-hidden">
         
         {/* Left Sidebar (Channels) - Collapsible/Mobile Drawer */}
         <div
-          className={`w-64 border-r border-white/5 bg-[#090d0e]/95 flex flex-col justify-between shrink-0 transition-transform duration-300 md:translate-x-0 fixed md:relative h-[calc(100vh-80px)] z-40 ${
+          className={`w-64 border-r border-white/5 bg-[#090d0e]/95 flex flex-col justify-between shrink-0 transition-transform duration-300 md:translate-x-0 fixed md:relative h-full z-40 ${
             isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           }`}
         >
@@ -547,39 +676,59 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
                 ))}
               </div>
             ) : (
-              activeMessages.map((msg) => (
-                <div key={msg.id} className="flex gap-3 text-left group">
-                  <div className="w-9 h-9 rounded-full bg-neutral-900 border border-white/10 shrink-0 flex items-center justify-center text-xs font-bold text-neutral-300">
-                    {msg.avatarUrl}
-                  </div>
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-bold text-white truncate">{msg.senderName}</span>
-                      
-                      {msg.plan === "Elite" && (
-                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded">
-                          Elite
-                        </span>
+              activeMessages.map((msg) => {
+                const isCurrentUser = msg.senderName === (user?.name || "Você") && !msg.isAi;
+                
+                return (
+                  <div key={msg.id} className={`flex gap-3 group ${isCurrentUser ? "flex-row-reverse" : "text-left"}`}>
+                    <div className={`w-9 h-9 rounded-full border shrink-0 flex items-center justify-center text-xs font-bold overflow-hidden ${
+                      isCurrentUser 
+                        ? "bg-gradient-to-tr from-[#9BE8D6]/20 to-[#336E72]/20 border-[#9BE8D6]/20 text-[#9BE8D6]" 
+                        : "bg-neutral-900 border-white/10 text-neutral-300"
+                    }`}>
+                      {msg.avatarUrl?.startsWith("http") || msg.avatarUrl?.startsWith("/") ? (
+                        <img src={msg.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        msg.avatarUrl
                       )}
-                      {msg.plan === "Pro" && (
-                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-emerald-500/10 text-[#9BE8D6] border border-emerald-500/20 rounded">
-                          Pro
-                        </span>
-                      )}
-                      {msg.senderRole === "Bot" && (
-                        <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded flex items-center gap-0.5">
-                          <Bot className="w-2.5 h-2.5" /> BOT
-                        </span>
-                      )}
-                      
-                      <span className="text-[9px] text-neutral-500 font-semibold">{msg.timestamp}</span>
                     </div>
-                    <p className="text-xs text-neutral-300 leading-relaxed break-words whitespace-pre-wrap">
-                      {msg.content}
-                    </p>
+                    <div className={`space-y-1 min-w-0 flex-1 flex flex-col ${isCurrentUser ? "items-end" : "items-start"}`}>
+                      <div className={`flex flex-wrap items-center gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}>
+                        <span className="text-xs font-bold text-white truncate">{msg.senderName}</span>
+                        
+                        {msg.plan === "Elite" && (
+                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded">
+                            Elite
+                          </span>
+                        )}
+                        {msg.plan === "Pro" && (
+                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-emerald-500/10 text-[#9BE8D6] border border-emerald-500/20 rounded">
+                            Pro
+                          </span>
+                        )}
+                        {msg.senderRole === "Bot" && (
+                          <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded flex items-center gap-0.5">
+                            <Bot className="w-2.5 h-2.5" /> BOT
+                          </span>
+                        )}
+                        
+                        <span className="text-[9px] text-neutral-500 font-semibold">{msg.timestamp}</span>
+                      </div>
+                      <div className={`text-xs leading-relaxed break-words p-3 rounded-2xl ${
+                        isCurrentUser 
+                          ? "bg-[#336E72]/15 border border-[#9BE8D6]/10 text-white rounded-tr-sm text-right" 
+                          : "bg-neutral-900/50 border border-white/5 text-neutral-300 rounded-tl-sm text-left"
+                      }`}>
+                        <TypewriterMarkdown 
+                          content={msg.content} 
+                          isAi={msg.isAi} 
+                          animate={msg.animate} 
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
 
             {/* AI Typing Indicator */}
@@ -673,7 +822,7 @@ export default function ComunidadeInternaClient({ communityId, user, initialComm
               animate={{ width: 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="hidden lg:flex flex-col border-l border-white/5 bg-[#090d0e]/95 h-[calc(100vh-80px)] overflow-y-auto p-4 space-y-6 shrink-0 text-left"
+              className="hidden lg:flex flex-col border-l border-white/5 bg-[#090d0e]/95 h-full overflow-y-auto p-4 space-y-6 shrink-0 text-left"
             >
               {/* About Section */}
               <div className="space-y-2">
