@@ -1,11 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.AUTH_SECRET || "fallback_secret_for_nunu_dev";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const cursor = searchParams.get('cursor');
     const limit = 10;
+
+    let userId: string | null = null;
+    const authHeader = request.headers.get("Authorization") || request.headers.get("authorization");
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      try {
+        const decoded: any = jwt.verify(token, JWT_SECRET);
+        userId = decoded.id;
+      } catch (e) {}
+    }
 
     const posts = await prisma.nunuPost.findMany({
       take: limit + 1,
@@ -24,6 +37,9 @@ export async function GET(request: Request) {
         _count: {
           select: { likes: true, comments: true }
         },
+        likes: userId ? {
+          where: { userId }
+        } : false,
         originalPost: {
           include: {
             author: {
@@ -56,6 +72,7 @@ export async function GET(request: Request) {
         viewCount: targetPost.viewCount,
         likesCount: post._count.likes,
         commentsCount: post._count.comments,
+        isLiked: (post as any).likes && (post as any).likes.length > 0,
         createdAt: post.createdAt,
         author: {
           profileId: targetPost.author.id,
