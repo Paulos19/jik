@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import jwt from "jsonwebtoken";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,6 +27,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 
     let followersCount = 0;
     let followingCount = 0;
+    let isFollowing = false;
+
+    // We need to know who is requesting this to calculate `isFollowing`
+    const authHeader = request.headers.get("Authorization") || request.headers.get("authorization");
+    let currentUserId = null;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      try {
+        const decoded: any = jwt.verify(token, process.env.AUTH_SECRET || "fallback_secret_for_nunu_dev");
+        currentUserId = decoded.id;
+      } catch (e) {
+        // invalid token, ignore
+      }
+    }
 
     if (user.nunuProfile) {
       followersCount = await prisma.nunuFollow.count({
@@ -34,6 +49,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       followingCount = await prisma.nunuFollow.count({
         where: { followerUserId: user.id }
       });
+
+      if (currentUserId) {
+        const followRecord = await prisma.nunuFollow.findFirst({
+          where: {
+            followerUserId: currentUserId,
+            targetProviderId: user.nunuProfile.id
+          }
+        });
+        isFollowing = !!followRecord;
+      }
     } else {
       followingCount = await prisma.nunuFollow.count({
         where: { followerUserId: user.id }
@@ -53,6 +78,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         rating: user.nunuProfile?.rating || 0,
         reviewCount: user.nunuProfile?.reviewCount || 0,
         providerId: user.nunuProfile?.id || null,
+        isFollowing: isFollowing,
       },
       stats: {
         followers: followersCount,
