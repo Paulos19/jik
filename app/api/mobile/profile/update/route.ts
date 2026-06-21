@@ -21,15 +21,16 @@ export async function PUT(request: Request) {
 
     const userId = decoded.id;
     const body = await request.json();
-    const { name, bio, city, state, brandColor } = body;
+    const { name, bio, city, state, brandColor, image } = body;
 
     // Update User
-    if (name || brandColor) {
+    if (name || brandColor || image) {
       await prisma.user.update({
         where: { id: userId },
         data: {
           ...(name && { name }),
-          ...(brandColor && { brandColor })
+          ...(brandColor && { brandColor }),
+          ...(image && { image })
         }
       });
     }
