@@ -44,6 +44,7 @@ model User {
   newsCards          NewsCard[]
   hubUpdates         HubUpdate[]
   communitiesCreated Community[]
+  nunuProfile        NunuProviderProfile?
 }
 
 model Account {
@@ -207,3 +208,34 @@ model ChannelMessage {
   channel    CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 }
 
+// ==========================================
+// NUNU MARKETPLACE (Mobile App)
+// ==========================================
+
+model NunuCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  providerProfiles NunuProviderProfile[] @relation("ProfileCategories")
+}
+
+model NunuProviderProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isProvider            Boolean  @default(false)
+  requirementsCompleted Boolean  @default(false)
+  bio                   String?  @db.Text
+  contactPhone          String?
+  rating                Float    @default(0.0)
+  reviewCount           Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  categories NunuCategory[] @relation("ProfileCategories")
+}

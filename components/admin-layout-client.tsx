@@ -19,6 +19,7 @@ import {
   Clock,
   Compass,
   User as UserIcon,
+  Smartphone,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -153,6 +154,7 @@ export default function AdminLayoutClient({ children, user }: AdminLayoutClientP
     { href: "/admin/usuarios", label: "Usuários", icon: Users },
     { href: "/admin/noticias", label: "Notícias", icon: Newspaper },
     { href: "/admin/hub", label: "Hub Updates", icon: FolderSync },
+    { href: "/admin/nunu", label: "Nunu Config", icon: Smartphone },
   ];
 
   const forumItems = [
