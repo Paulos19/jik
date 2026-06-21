@@ -285,15 +285,20 @@ model NunuPost {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  authorId String
-  author   NunuProviderProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      NunuProviderProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  serviceId String?
-  service   NunuService? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceId   String?
+  service     NunuService? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
 
-  likes    NunuLike[]
-  comments NunuComment[]
-  reports  NunuReport[]
+  // Repost system
+  originalPostId String?
+  originalPost   NunuPost?  @relation("Reposts", fields: [originalPostId], references: [id], onDelete: Cascade)
+  reposts        NunuPost[] @relation("Reposts")
+
+  likes       NunuLike[]
+  comments    NunuComment[]
+  reports     NunuReport[]
 }
 
 model NunuLike {

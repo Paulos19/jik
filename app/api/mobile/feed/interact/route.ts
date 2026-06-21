@@ -53,6 +53,53 @@ export async function POST(request: Request) {
       }
     }
 
+    // Repost Action
+    if (action === "repost" && postId) {
+      const providerProfile = await prisma.nunuProviderProfile.findUnique({
+        where: { userId }
+      });
+
+      if (!providerProfile) {
+        return NextResponse.json({ error: "Apenas prestadores podem repostar no momento." }, { status: 403 });
+      }
+
+      // Evitar repost duplicado
+      const existingRepost = await prisma.nunuPost.findFirst({
+        where: { authorId: providerProfile.id, originalPostId: postId }
+      });
+
+      if (existingRepost) {
+        return NextResponse.json({ error: "Você já repostou isso." }, { status: 400 });
+      }
+
+      // Buscar o post original para clonar mediaUrl e mediaType (para garantir fallback e segurança)
+      const original = await prisma.nunuPost.findUnique({ where: { id: postId } });
+      if (!original) return NextResponse.json({ error: "Post não encontrado" }, { status: 404 });
+
+      await prisma.nunuPost.create({
+        data: {
+          authorId: providerProfile.id,
+          originalPostId: postId,
+          mediaUrl: original.mediaUrl, // Guardamos a referência mesmo com originalPostId por precaução
+          mediaType: original.mediaType,
+        }
+      });
+      return NextResponse.json({ message: "Repostado com sucesso." });
+    }
+
+    // Comment Action
+    if (action === "comment" && postId && body.content) {
+      const comment = await prisma.nunuComment.create({
+        data: {
+          postId,
+          userId,
+          content: body.content
+        },
+        include: { user: { select: { name: true, image: true } } }
+      });
+      return NextResponse.json({ message: "Comentário adicionado.", comment });
+    }
+
     // Report Action
     if (action === "report" && postId) {
       await prisma.nunuReport.create({

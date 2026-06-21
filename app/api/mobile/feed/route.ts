@@ -23,6 +23,14 @@ export async function GET(request: Request) {
         service: true,
         _count: {
           select: { likes: true, comments: true }
+        },
+        originalPost: {
+          include: {
+            author: {
+              include: { user: { select: { name: true, image: true, id: true } } }
+            },
+            service: true
+          }
         }
       }
     });
@@ -34,27 +42,34 @@ export async function GET(request: Request) {
     }
 
     // Format for mobile
-    const formattedPosts = posts.map(post => ({
-      id: post.id,
-      mediaUrl: post.mediaUrl,
-      mediaType: post.mediaType,
-      caption: post.caption,
-      viewCount: post.viewCount,
-      likesCount: post._count.likes,
-      commentsCount: post._count.comments,
-      createdAt: post.createdAt,
-      author: {
-        profileId: post.author.id,
-        userId: post.author.user.id,
-        name: post.author.user.name,
-        avatar: post.author.user.image,
-      },
-      service: post.service ? {
-        id: post.service.id,
-        title: post.service.title,
-        price: post.service.price
-      } : null
-    }));
+    const formattedPosts = posts.map(post => {
+      // Se for repost, os dados de mídia vêm do originalPost
+      const targetPost = post.originalPostId && post.originalPost ? post.originalPost : post;
+      
+      return {
+        id: post.id,
+        isRepost: !!post.originalPostId,
+        repostedBy: post.originalPostId ? post.author.user.name : null,
+        mediaUrl: targetPost.mediaUrl,
+        mediaType: targetPost.mediaType,
+        caption: targetPost.caption,
+        viewCount: targetPost.viewCount,
+        likesCount: post._count.likes,
+        commentsCount: post._count.comments,
+        createdAt: post.createdAt,
+        author: {
+          profileId: targetPost.author.id,
+          userId: targetPost.author.user.id,
+          name: targetPost.author.user.name,
+          avatar: targetPost.author.user.image,
+        },
+        service: targetPost.service ? {
+          id: targetPost.service.id,
+          title: targetPost.service.title,
+          price: targetPost.service.price
+        } : null
+      };
+    });
 
     return NextResponse.json({
       posts: formattedPosts,
