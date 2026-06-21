@@ -45,6 +45,10 @@ model User {
   hubUpdates         HubUpdate[]
   communitiesCreated Community[]
   nunuProfile        NunuProviderProfile?
+  nunuLikes          NunuLike[]
+  nunuComments       NunuComment[]
+  nunuFollows        NunuFollow[]
+  nunuReports        NunuReport[]
 }
 
 model Account {
@@ -157,29 +161,29 @@ model ForumPost {
 // ==========================================
 
 model Community {
-  id             String             @id @default(cuid())
+  id             String   @id @default(cuid())
   name           String
-  description    String             @db.Text
-  type           String             // "public" | "restricted"
-  creatorPlan    String             @default("GRACE") // SimulatedPlan e.g. "GRACE", "FIEL", "APOSTOLO"
-  memberCount    Int                @default(1)
+  description    String   @db.Text
+  type           String // "public" | "restricted"
+  creatorPlan    String   @default("GRACE") // SimulatedPlan e.g. "GRACE", "FIEL", "APOSTOLO"
+  memberCount    Int      @default(1)
   tags           String[]
   bannerGradient String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  creatorId      String
-  creator        User               @relation(fields: [creatorId], references: [id])
-  channels       CommunityChannel[]
+  creatorId String
+  creator   User               @relation(fields: [creatorId], references: [id])
+  channels  CommunityChannel[]
 }
 
 model CommunityChannel {
-  id          String           @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  description String           @db.Text
-  isBot       Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  description String   @db.Text
+  isBot       Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   communityId String
   community   Community        @relation(fields: [communityId], references: [id], onDelete: Cascade)
@@ -194,18 +198,18 @@ model AgentInstruction {
 }
 
 model ChannelMessage {
-  id         String           @id @default(cuid())
-  content    String           @db.Text
-  senderId   String?          // Nullable for bot or system messages
+  id         String   @id @default(cuid())
+  content    String   @db.Text
+  senderId   String? // Nullable for bot or system messages
   senderName String
-  senderRole String           // "Membro" | "Moderador" | "Bot" | "Staff"
-  plan       String?          // "Básico" | "Pro" | "Elite" | "Staff"
+  senderRole String // "Membro" | "Moderador" | "Bot" | "Staff"
+  plan       String? // "Básico" | "Pro" | "Elite" | "Staff"
   avatarUrl  String?
-  isAi       Boolean          @default(false)
-  createdAt  DateTime         @default(now())
+  isAi       Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
-  channelId  String
-  channel    CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   CommunityChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================
@@ -242,4 +246,110 @@ model NunuProviderProfile {
   updatedAt             DateTime @updatedAt
 
   categories NunuCategory[] @relation("ProfileCategories")
+
+  services  NunuService[]
+  posts     NunuPost[]
+  followers NunuFollow[]  @relation("FollowTarget")
+  following NunuFollow[]  @relation("FollowSource")
+}
+
+model NunuService {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  price       Float?
+  imageUrl    String?
+  region      String? // Ex: "SP - São Paulo"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  providerId String
+  provider   NunuProviderProfile @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  posts NunuPost[] // Posts linked to this service
+}
+
+enum MediaType {
+  VIDEO
+  IMAGE
+}
+
+model NunuPost {
+  id        String    @id @default(cuid())
+  caption   String?   @db.Text
+  mediaUrl  String
+  mediaType MediaType @default(VIDEO)
+  viewCount Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  authorId String
+  author   NunuProviderProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  serviceId String?
+  service   NunuService? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  likes    NunuLike[]
+  comments NunuComment[]
+  reports  NunuReport[]
+}
+
+model NunuLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  postId String
+  post   NunuPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model NunuComment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  postId String
+  post   NunuPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NunuFollow {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // O usuário (comum ou prestador) que está seguindo
+  followerUserId String
+  followerUser   User   @relation(fields: [followerUserId], references: [id], onDelete: Cascade)
+
+  // O prestador de serviço que está sendo seguido
+  targetProviderId String
+  targetProvider   NunuProviderProfile @relation("FollowTarget", fields: [targetProviderId], references: [id], onDelete: Cascade)
+
+  // Relação redundante caso o prestador queira seguir de volta usando seu perfil (Opcional, mas útil)
+  sourceProviderId String?
+  sourceProvider   NunuProviderProfile? @relation("FollowSource", fields: [sourceProviderId], references: [id], onDelete: Cascade)
+
+  @@unique([followerUserId, targetProviderId])
+}
+
+model NunuReport {
+  id        String   @id @default(cuid())
+  reason    String   @db.Text
+  status    String   @default("PENDING") // PENDING, REVIEWED, RESOLVED
+  createdAt DateTime @default(now())
+
+  postId String
+  post   NunuPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -1,0 +1,74 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.AUTH_SECRET || "fallback_secret_for_nunu_dev";
+
+export async function POST(request: Request) {
+  try {
+    const authHeader = request.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "Token não fornecido." }, { status: 401 });
+    }
+
+    const token = authHeader.split(" ")[1];
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return NextResponse.json({ error: "Token inválido." }, { status: 401 });
+    }
+
+    const userId = decoded.id;
+    const body = await request.json();
+    const { action, postId, targetProviderId } = body;
+
+    // Like Action
+    if (action === "like" && postId) {
+      const existingLike = await prisma.nunuLike.findUnique({
+        where: { postId_userId: { postId, userId } }
+      });
+
+      if (existingLike) {
+        await prisma.nunuLike.delete({ where: { id: existingLike.id } });
+        return NextResponse.json({ message: "Unliked", liked: false });
+      } else {
+        await prisma.nunuLike.create({ data: { postId, userId } });
+        return NextResponse.json({ message: "Liked", liked: true });
+      }
+    }
+
+    // Follow Action
+    if (action === "follow" && targetProviderId) {
+      const existingFollow = await prisma.nunuFollow.findUnique({
+        where: { followerUserId_targetProviderId: { followerUserId: userId, targetProviderId } }
+      });
+
+      if (existingFollow) {
+        await prisma.nunuFollow.delete({ where: { id: existingFollow.id } });
+        return NextResponse.json({ message: "Unfollowed", following: false });
+      } else {
+        await prisma.nunuFollow.create({ data: { followerUserId: userId, targetProviderId } });
+        return NextResponse.json({ message: "Followed", following: true });
+      }
+    }
+
+    // Report Action
+    if (action === "report" && postId) {
+      await prisma.nunuReport.create({
+        data: {
+          postId,
+          userId,
+          reason: body.reason || "Conteúdo impróprio"
+        }
+      });
+      return NextResponse.json({ message: "Denúncia registrada." });
+    }
+
+    return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
+
+  } catch (error: any) {
+    console.error("Interact Error:", error);
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+  }
+}
