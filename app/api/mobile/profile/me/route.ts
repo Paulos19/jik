@@ -96,6 +96,7 @@ export async function GET(request: Request) {
         posts: user.nunuProfile?.posts?.length || 0,
       },
       services: user.nunuProfile?.services || [],
+      posts: user.nunuProfile?.posts || [],
       recentActivity
     });
 
