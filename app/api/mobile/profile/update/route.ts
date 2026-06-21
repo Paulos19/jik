@@ -63,7 +63,30 @@ export async function PUT(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true });
+    // Fetch the updated user to sign a new token
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    let newToken = token;
+    if (updatedUser) {
+      newToken = jwt.sign(
+        { 
+          id: updatedUser.id, 
+          email: updatedUser.email, 
+          role: updatedUser.role,
+          image: updatedUser.image,
+          name: updatedUser.name,
+          brandColor: updatedUser.brandColor,
+          nunuProvider: user?.nunuProfile?.isProvider || false,
+          nunuRequirements: user?.nunuProfile?.requirementsCompleted || false
+        },
+        JWT_SECRET,
+        { expiresIn: "30d" }
+      );
+    }
+
+    return NextResponse.json({ success: true, token: newToken });
 
   } catch (error) {
     console.error("PUT /profile/update error:", error);
