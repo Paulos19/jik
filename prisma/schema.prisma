@@ -232,6 +232,10 @@ model NunuProviderProfile {
   requirementsCompleted Boolean  @default(false)
   bio                   String?  @db.Text
   contactPhone          String?
+  state                 String?
+  city                  String?
+  latitude              Float?
+  longitude             Float?
   rating                Float    @default(0.0)
   reviewCount           Int      @default(0)
   createdAt             DateTime @default(now())
