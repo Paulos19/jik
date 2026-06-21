@@ -38,17 +38,20 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts           Account[]
-  sessions           Session[]
-  forumPosts         ForumPost[]
-  newsCards          NewsCard[]
-  hubUpdates         HubUpdate[]
-  communitiesCreated Community[]
-  nunuProfile        NunuProviderProfile?
-  nunuLikes          NunuLike[]
-  nunuComments       NunuComment[]
-  nunuFollows        NunuFollow[]
-  nunuReports        NunuReport[]
+  accounts              Account[]
+  sessions              Session[]
+  forumPosts            ForumPost[]
+  newsCards             NewsCard[]
+  hubUpdates            HubUpdate[]
+  communitiesCreated    Community[]
+  nunuProfile           NunuProviderProfile?
+  nunuLikes             NunuLike[]
+  nunuComments          NunuComment[]
+  nunuFollows           NunuFollow[]
+  nunuReports           NunuReport[]
+  nunuCommentLikes      NunuCommentLike[]
+  receivedNotifications NunuNotification[]   @relation("ReceivedNotifications")
+  sentNotifications     NunuNotification[]   @relation("SentNotifications")
 }
 
 model Account {
@@ -285,20 +288,20 @@ model NunuPost {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  authorId    String
-  author      NunuProviderProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+  author   NunuProviderProfile @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  serviceId   String?
-  service     NunuService? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  serviceId String?
+  service   NunuService? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
 
   // Repost system
   originalPostId String?
   originalPost   NunuPost?  @relation("Reposts", fields: [originalPostId], references: [id], onDelete: Cascade)
   reposts        NunuPost[] @relation("Reposts")
 
-  likes       NunuLike[]
-  comments    NunuComment[]
-  reports     NunuReport[]
+  likes    NunuLike[]
+  comments NunuComment[]
+  reports  NunuReport[]
 }
 
 model NunuLike {
@@ -325,6 +328,8 @@ model NunuComment {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  commentLikes NunuCommentLike[]
 }
 
 model NunuFollow {
@@ -357,4 +362,31 @@ model NunuReport {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NunuCommentLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  commentId String
+  comment   NunuComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+}
+
+model NunuNotification {
+  id        String   @id @default(cuid())
+  type      String // MENTION, LIKE, FOLLOW
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  recipientUserId String
+  recipient       User   @relation("ReceivedNotifications", fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  actorUserId String?
+  actor       User?   @relation("SentNotifications", fields: [actorUserId], references: [id], onDelete: Cascade)
 }
