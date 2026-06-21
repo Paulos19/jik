@@ -33,6 +33,8 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
+  gender        String?
+  brandColor    String?   @default("#FF4B72")
   role          Role      @default(USER)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
