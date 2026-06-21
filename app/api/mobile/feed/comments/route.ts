@@ -16,11 +16,19 @@ export async function GET(request: Request) {
       include: {
         user: {
           select: { name: true, image: true, id: true }
+        },
+        _count: {
+          select: { commentLikes: true }
         }
       }
     });
 
-    return NextResponse.json({ comments });
+    const formattedComments = comments.map(c => ({
+      ...c,
+      likesCount: c._count.commentLikes
+    }));
+
+    return NextResponse.json({ comments: formattedComments });
 
   } catch (error: any) {
     console.error("Comments Fetch Error:", error);

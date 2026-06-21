@@ -97,6 +97,38 @@ export async function POST(request: Request) {
         },
         include: { user: { select: { name: true, image: true } } }
       });
+
+      // Detectar menções (ex: @alezudoo)
+      const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
+      const mentions = body.content.match(mentionRegex);
+      
+      if (mentions) {
+        // Obter os usernames limpos
+        const usernames = mentions.map((m: string) => m.substring(1));
+        
+        // Buscar usuários reais que batem com esses nomes
+        const mentionedUsers = await prisma.user.findMany({
+          where: { name: { in: usernames } },
+          select: { id: true, name: true }
+        });
+
+        // Criar notificações para todos os usuários mencionados que não sejam o próprio autor
+        const notifications = mentionedUsers
+          .filter(u => u.id !== userId)
+          .map(u => ({
+            type: "MENTION",
+            message: `mencionou você em um comentário: "${body.content.substring(0, 30)}..."`,
+            recipientUserId: u.id,
+            actorUserId: userId
+          }));
+          
+        if (notifications.length > 0) {
+          await prisma.nunuNotification.createMany({
+            data: notifications
+          });
+        }
+      }
+
       return NextResponse.json({ message: "Comentário adicionado.", comment });
     }
 
