@@ -55,6 +55,8 @@ export async function POST(request: Request) {
         id: user.id, 
         email: user.email, 
         role: user.role,
+        image: user.image,
+        name: user.name,
         nunuProvider: nunuProfile.isProvider,
         nunuRequirements: nunuProfile.requirementsCompleted
       },
