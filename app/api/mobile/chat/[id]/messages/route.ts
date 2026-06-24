@@ -1,20 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/auth";
+import jwt from "jsonwebtoken";
 import { pusherServer } from "@/lib/pusher";
+
+const JWT_SECRET = process.env.AUTH_SECRET || "fallback_secret_for_nunu_dev";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    const token = authHeader.split(" ")[1];
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = decoded.id;
     const { id: chatId } = await params;
-    const userId = session.user.id;
     const url = new URL(req.url);
     const cursor = url.searchParams.get("cursor");
     const limit = parseInt(url.searchParams.get("limit") || "20");
@@ -66,13 +74,19 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    const token = authHeader.split(" ")[1];
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+    const userId = decoded.id;
     const { id: chatId } = await params;
-    const userId = session.user.id;
     const { content, type = "TEXT", mediaUrl } = await req.json();
 
     if (!content && !mediaUrl) {
