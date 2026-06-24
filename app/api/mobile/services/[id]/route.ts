@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.AUTH_SECRET || "fallback_secret_for_nunu_dev";
 
-export async function POST(request: Request) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const authHeader = request.headers.get("Authorization") || request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     const userId = decoded.id;
     const body = await request.json();
     const { title, description, price, region, categoryId, imageUrl } = body;
+    const serviceId = params.id;
 
     if (!title || !description) {
       return NextResponse.json({ error: "Title and description are required" }, { status: 400 });
@@ -32,23 +33,18 @@ export async function POST(request: Request) {
       include: { nunuProfile: true }
     });
 
-    let providerId = user?.nunuProfile?.id;
+    const providerId = user?.nunuProfile?.id;
 
-    // If user is not a provider yet, create the profile
     if (!providerId) {
-      const newProfile = await prisma.nunuProviderProfile.create({
-        data: {
-          userId,
-          isProvider: true,
-        }
-      });
-      providerId = newProfile.id;
-    } else if (!user?.nunuProfile?.isProvider) {
-      // Mark as provider
-      await prisma.nunuProviderProfile.update({
-        where: { id: providerId },
-        data: { isProvider: true }
-      });
+      return NextResponse.json({ error: "Not a provider" }, { status: 403 });
+    }
+
+    const existingService = await prisma.nunuService.findUnique({
+      where: { id: serviceId }
+    });
+
+    if (!existingService || existingService.providerId !== providerId) {
+      return NextResponse.json({ error: "Service not found or access denied" }, { status: 404 });
     }
 
     // Ensure category exists
@@ -59,18 +55,17 @@ export async function POST(request: Request) {
       }
     }
 
-    const newService = await prisma.nunuService.create({
+    const updatedService = await prisma.nunuService.update({
+      where: { id: serviceId },
       data: {
         title,
         description,
         price: price ? parseFloat(price) : null,
         region,
         imageUrl,
-        providerId: providerId,
       }
     });
 
-    // Optionally connect category to provider profile if they add a service from it
     if (categoryId) {
       await prisma.nunuProviderProfile.update({
         where: { id: providerId },
@@ -82,10 +77,10 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, service: newService });
+    return NextResponse.json({ success: true, service: updatedService });
 
   } catch (error) {
-    console.error("POST /services error:", error);
+    console.error("PUT /services/[id] error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
