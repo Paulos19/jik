@@ -23,6 +23,29 @@ enum UpdateType {
 }
 
 // ==========================================
+// CHAT ENUMS
+// ==========================================
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  LOCATION
+  CONTACT
+  GIF
+  STICKER
+  POLL
+}
+
+// ==========================================
 // AUTH MODELS (NextAuth v5 / @auth/prisma-adapter)
 // ==========================================
 
@@ -54,6 +77,10 @@ model User {
   nunuCommentLikes      NunuCommentLike[]
   receivedNotifications NunuNotification[]   @relation("ReceivedNotifications")
   sentNotifications     NunuNotification[]   @relation("SentNotifications")
+
+  // Chat Relations
+  chatParticipations    ChatParticipant[]
+  messagesSent          ChatMessage[]
 }
 
 model Account {
@@ -391,4 +418,54 @@ model NunuNotification {
 
   actorUserId String?
   actor       User?   @relation("SentNotifications", fields: [actorUserId], references: [id], onDelete: Cascade)
+}
+
+// ==========================================
+// CHAT SYSTEM (Private & Groups)
+// ==========================================
+
+model Chat {
+  id          String   @id @default(cuid())
+  isGroup     Boolean  @default(false)
+  name        String?  // Nome do grupo (null para 1-to-1)
+  description String?  @db.Text
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+}
+
+model ChatParticipant {
+  id          String   @id @default(cuid())
+  role        String   @default("MEMBER") // MEMBER, ADMIN
+  unreadCount Int      @default(0)
+  lastReadAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+}
+
+model ChatMessage {
+  id        String        @id @default(cuid())
+  content   String        @db.Text
+  status    MessageStatus @default(SENT)
+  type      MessageType   @default(TEXT)
+  mediaUrl  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
 }
