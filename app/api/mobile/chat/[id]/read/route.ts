@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,7 +12,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const chatId = params.id;
+    const { id: chatId } = await params;
     const userId = session.user.id;
 
     // Verificar se usuário é participante

@@ -5,7 +5,7 @@ import { pusherServer } from "@/lib/pusher";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const chatId = params.id;
+    const { id: chatId } = await params;
     const userId = session.user.id;
     const url = new URL(req.url);
     const cursor = url.searchParams.get("cursor");
@@ -63,7 +63,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -71,7 +71,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const chatId = params.id;
+    const { id: chatId } = await params;
     const userId = session.user.id;
     const { content, type = "TEXT", mediaUrl } = await req.json();
 
