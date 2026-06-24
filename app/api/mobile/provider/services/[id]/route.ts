@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.AUTH_SECRET || "fallback_secret_for_nunu_dev";
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) return NextResponse.json({ error: "Token não fornecido." }, { status: 401 });
@@ -22,7 +22,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     const { title, description, price, imageUrl, region, categoryId } = await request.json();
-    const serviceId = params.id;
+    const resolvedParams = await params;
+    const serviceId = resolvedParams.id;
 
     const providerProfile = await prisma.nunuProviderProfile.findUnique({
       where: { userId: decoded.id }

@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.AUTH_SECRET || "fallback_secret_for_nunu_dev";
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authHeader = request.headers.get("Authorization") || request.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -22,7 +22,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const userId = decoded.id;
     const body = await request.json();
     const { title, description, price, region, categoryId, imageUrl } = body;
-    const serviceId = params.id;
+    const resolvedParams = await params;
+    const serviceId = resolvedParams.id;
 
     if (!title || !description) {
       return NextResponse.json({ error: "Title and description are required" }, { status: 400 });
