@@ -17,17 +17,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Token inválido." }, { status: 401 });
     }
 
-    if (!decoded.nunuProvider) {
-      return NextResponse.json({ error: "Acesso negado. Apenas prestadores." }, { status: 403 });
-    }
-
     const { mediaUrl, mediaType, caption, serviceId } = await request.json();
 
     const providerProfile = await prisma.nunuProviderProfile.findUnique({
       where: { userId: decoded.id }
     });
 
-    if (!providerProfile) return NextResponse.json({ error: "Perfil não encontrado" }, { status: 404 });
+    if (!providerProfile || !providerProfile.isProvider) {
+      return NextResponse.json({ error: "Acesso negado. Apenas prestadores." }, { status: 403 });
+    }
 
     const post = await prisma.nunuPost.create({
       data: {
